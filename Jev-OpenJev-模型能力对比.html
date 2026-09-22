@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jev vs OpenJev 模型能力对比 · 零信任 System One 复现工程</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --jev:#c0392b; --openjev:#2477c5; --plan:#1e8f57; --ref:#9aa4ae;
+    --ink:#22303e; --sub:#5b6b7b; --bg:#f4f6f9; --card:#ffffff; --line:#e4e9ef;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif; background:var(--bg); color:var(--ink); padding:28px 20px 48px;}
+  .wrap{max-width:1180px; margin:0 auto;}
+  header h1{font-size:26px; letter-spacing:.5px;}
+  header .meta{color:var(--sub); font-size:13px; margin-top:6px;}
+  .banner{margin:18px 0 22px; padding:12px 16px; background:#fff8e1; border-left:4px solid #f39c12; border-radius:6px; font-size:13px; line-height:1.7; color:#6b5200;}
+  .kpis{display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:14px; margin-bottom:22px;}
+  .kpi{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px 18px; box-shadow:0 1px 3px rgba(20,40,60,.05);}
+  .kpi .v{font-size:28px; font-weight:700;}
+  .kpi .v small{font-size:14px; font-weight:400; color:var(--sub);}
+  .kpi .t{font-size:13px; color:var(--sub); margin-top:4px; line-height:1.5;}
+  .kpi.jev .v{color:var(--jev);} .kpi.openjev .v{color:var(--openjev);} .kpi.plan .v{color:var(--plan);}
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  @media(max-width:880px){.grid{grid-template-columns:1fr;}}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px 20px; box-shadow:0 1px 3px rgba(20,40,60,.05);}
+  .card h2{font-size:16px; margin-bottom:2px;}
+  .card .cap{font-size:12px; color:var(--sub); margin-bottom:10px; line-height:1.6;}
+  .card .box{position:relative; height:320px;}
+  .full{grid-column:1 / -1;}
+  table{width:100%; border-collapse:collapse; font-size:13px; margin-top:6px;}
+  th,td{border:1px solid var(--line); padding:8px 10px; text-align:left; line-height:1.55;}
+  th{background:#eef2f7; font-weight:600; white-space:nowrap;}
+  tr:nth-child(even) td{background:#fafcfe;}
+  .tag{display:inline-block; padding:1px 8px; border-radius:10px; font-size:11px; color:#fff; vertical-align:1px;}
+  .tag.jev{background:var(--jev);} .tag.openjev{background:var(--openjev);} .tag.plan{background:var(--plan);} .tag.warn{background:#f39c12;}
+  .legend-note{font-size:12px; color:var(--sub); line-height:1.8; margin-top:10px;}
+  footer{margin-top:26px; font-size:12px; color:var(--sub); line-height:1.9;}
+  footer b{color:var(--ink);}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Jev vs OpenJev · 模型能力对比</h1>
+  <div class="meta">零信任 System One 复现工程（规格 §13 配套页） · v0.4 · 2026-09-21 · 数据口径以页内声明为准，禁止跨口径引读</div>
+</header>
+
+<div class="banner"><b>⚠ 口径警示</b>：① 88.3% 为 TypeSafe 官方在其精选公开案例上的<b>宣称值</b>，84.5% 等为第三方在 102 行公开子集上对开源模型的<b>实测值</b>（参照系，非头对头）；② 67.8% 是 Jev 在 4 个真实业务流的一致率（第三方），与公开案例子集不同分布；③ OpenJev 延迟为浏览器端（RTX 3090 + Chrome 152）实测；④ 本方案列全部为<b>门禁目标值，尚未实测</b>。</div>
+
+<section class="kpis">
+  <div class="kpi"><div class="v" style="color:var(--jev)">88.3<small>%</small> <span style="font-size:15px;color:var(--sub)">vs</span> <span style="color:var(--openjev)">84.5%</span></div><div class="t">决策一致率（102 行公开案例）：Jev 宣称 vs OpenJev-Qwen3.5-4B 实测，差距 3.8pp</div></div>
+  <div class="kpi openjev"><div class="v">5.21<small>×</small></div><div class="t">OpenJev 免解码提速（21 问共享上下文：1.023s vs 自回归 JSON 5.332s，0 token）</div></div>
+  <div class="kpi"><div class="v" style="color:var(--jev)">27.8<small>%</small></div><div class="t">OpenJev 扰动翻转率：仅颠倒选项顺序即翻转最高预测（措辞改写 25.0% / 无关注入 11.1%）</div></div>
+  <div class="kpi"><div class="v" style="color:var(--ref)">67.8<small>%</small></div><div class="t">Jev 在 4 个真实业务流的平均一致率（第三方）——本工程的"天花板管理"依据</div></div>
+</section>
+
+<div class="grid">
+  <div class="card">
+    <h2>① 决策一致率 · 规模-精度曲线</h2>
+    <div class="cap">TypeSafe 公开 102 行案例子集；灰色为不同口径参照（真实业务流分布），不与其余同框比高低</div>
+    <div class="box"><canvas id="cAgree"></canvas></div>
+    <div class="legend-note">读数：探针一致率与参数量强正相关（40.7 → 63.7 → 84.5），<b>小模型免训练没有免费午餐</b>——零样本探针必须 ≥4B。</div>
+  </div>
+
+  <div class="card">
+    <h2>② 单次决策延迟 · 免解码 vs 自回归 JSON</h2>
+    <div class="cap">OpenJev 浏览器端实测（秒，越低越好）；第四组为 Qwen3.5-4B BF16 · 21 问共享上下文</div>
+    <div class="box"><canvas id="cLatency"></canvas></div>
+    <div class="legend-note">加速比：2.11×（0.6B） / 2.78×（2B） / 2.50×（4B） / <b>5.21×（共享上下文）</b>。18/21 项二元判定的最高选项与逐字生成一致。</div>
+  </div>
+
+  <div class="card">
+    <h2>③ 扰动翻转率 · OpenJev 实测 vs 复现门禁</h2>
+    <div class="cap">各 36 用例中最高预测被翻转的比例（越低越好）；绿色为复现方案 M5 探针的去偏后门禁上限</div>
+    <div class="box"><canvas id="cPerturb"></canvas></div>
+    <div class="legend-note">对策（规格 §8.4）：候选 k≥4 随机排列取平均去偏、模板版本冻结（策略改措辞 = 模型升级）、扰动集进硬验收。</div>
+  </div>
+
+  <div class="card">
+    <h2>④ 综合能力雷达（0–10 合成评分）</h2>
+    <div class="cap">换算规则：一致率/延迟/成本按公开数据线性归一；校准、扰动、成熟度按证据强度定性计分（Jev 扰动未公开，保守计 3 分）</div>
+    <div class="box"><canvas id="cRadar"></canvas></div>
+    <div class="legend-note">形态差异：Jev 强在<span class="tag jev">校准与延迟</span>但闭源不可自托管；OpenJev 强在<span class="tag openjev">开放与弹性</span>但概率未校准；本方案以<span class="tag plan">自主+校准+结构免疫</span>换自然语言弹性。</div>
+  </div>
+
+  <div class="card full">
+    <h2>⑤ 明细对照表（规格 §13.1）</h2>
+    <table>
+      <tr><th>维度</th><th><span class="tag jev">Jev</span> TypeSafe（宣称/第三方）</th><th><span class="tag openjev">OpenJev</span> TheoLeeCJ（实测）</th><th><span class="tag plan">复现 v0.4</span> 门禁目标 <span class="tag warn">未实测</span></th></tr>
+      <tr><td>决策一致率</td><td>88.3%（公开案例宣称）；67.8%（真实业务流，第三方）</td><td>0.6B 40.7% · 2B 63.7% · 4B 84.5%（102 行子集）</td><td>不跨域比分数；本域 AUROC ≥0.90、macro-F1 ≥0.80（§11.1）</td></tr>
+      <tr><td>单次决策延迟</td><td>70–500 ms</td><td>0.70 / 1.51 / 3.27 s（WebGPU 端侧）</td><td>主线 P50 &lt;10ms · 控制面 P99 &lt;200ms · 缓存 &lt;1ms</td></tr>
+      <tr><td>密集吞吐提速</td><td>宣称 40–200×（vs 自回归生成）</td><td>2.11–2.78× 单决策；<b>5.21×</b> 共享上下文</td><td>判别式一次前向出 8 头（结构性免解码）</td></tr>
+      <tr><td>概率校准</td><td>RLCD 专项训练（宣称）</td><td><b>无</b>——候选间条件概率（自认）</td><td>ECE ≤0.02 硬门禁；未校准禁入阈值（§6.1 红线）</td></tr>
+      <tr><td>扰动鲁棒</td><td>未公开</td><td>顺序反转 27.8% · 改写 25.0% · 注入 11.1%</td><td>主线固定 schema 结构免疫；探针去偏后 ≤10%</td></tr>
+      <tr><td>成本</td><td>输入 $0.042/MTok，输出免费</td><td>本地开源免费（0.64–3.01 GB 量化档）</td><td>本地免费 + 一次性训练/标注投入（M1 为主要成本）</td></tr>
+      <tr><td>自主性</td><td>闭源 API（OpenRouter/Cloudflare 渠道），权重不公开</td><td>纯前端，无后端/无遥测；≤20 选项、2048 token 截断</td><td>完全自托管，版本四元组可审计、可回放</td></tr>
+      <tr><td>Schema 弹性</td><td>任意类型化问题（官方原语内）</td><td>自由提问 + 自由候选，零训练</td><td>主线冻结 schema；M5 探针保留自然语言弹性</td></tr>
+    </table>
+  </div>
+</div>
+
+<footer>
+  <b>数据来源</b>：TypeSafe 官方博客（2026-09-15，System One / RLCD / 88.3% 宣称与定价）；ic.work《OpenJev 提速 5.21 倍》评测分析（Ada Vector，2026-09-18：一致率、延迟、扰动、67.8% 业务流数据）；TheoLeeCJ/openjev（METHOD.md、WebGPU demo）；zhihz/openjev README（"逐问重编码"低效项与"候选间概率"自认）；DEV 实战指南（Jev 原语与级联用例）；央广网/科技日报（APUS 开源复现）。<br>
+  <b>维护约定</b>：本页随规格升版本同步更新；M2–M5 实测数据回填后，"复现目标"列改为"实测值"并移除 <span class="tag warn">未实测</span> 标签；回填前本列禁止外引。
+</footer>
+</div>
+
+<script>
+Chart.defaults.font.family = '"Microsoft YaHei","PingFang SC",system-ui,sans-serif';
+Chart.defaults.color = '#22303e';
+
+const valueLabels = {
+  id:'valueLabels',
+  afterDatasetsDraw(chart,args,opts){
+    const {ctx}=chart;
+    chart.data.datasets.forEach((ds,di)=>{
+      const meta=chart.getDatasetMeta(di);
+      if(meta.hidden) return;
+      meta.data.forEach((el,i)=>{
+        const v=ds.data[i]; if(v==null) return;
+        ctx.save();
+        ctx.font='600 11px "Microsoft YaHei",system-ui';
+        ctx.fillStyle=opts.colors?opts.colors[di]:'#5b6b7b';
+        if(opts.horizontal){ctx.textAlign='left';ctx.fillText(v+(opts.suffix||''),el.x+6,el.y+4);}
+        else{ctx.textAlign='center';ctx.fillText(v+(opts.suffix||''),el.x,el.y-6);}
+        ctx.restore();
+      });
+    });
+  }
+};
+
+const C={jev:'#c0392b',openjev:'#2477c5',plan:'#1e8f57',ref:'#9aa4ae'};
+Chart.register(valueLabels);
+
+/* ① 一致率 */
+new Chart(document.getElementById('cAgree'),{
+  type:'bar',
+  data:{
+    labels:['Jev 官方宣称（公开案例）','OpenJev · Qwen3.5-4B 实测','Jev 真实业务流（跨口径参照）','OpenJev · MiniCPM5-2B 实测','OpenJev · Qwen3-0.6B 实测'],
+    datasets:[{data:[88.3,84.5,67.8,63.7,40.7],
+      backgroundColor:[C.jev,C.openjev,C.ref,C.openjev,C.openjev],borderRadius:5,barThickness:26}]
+  },
+  options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+    layout:{padding:{right:44}},
+    plugins:{legend:{display:false},
+      valueLabels:{suffix:'%',horizontal:true,colors:['#22303e']},
+      tooltip:{callbacks:{label:c=>' '+c.parsed.x+'%'+(c.dataIndex===2?'（不同分布，勿同框比较）':'')}}},
+    scales:{x:{max:100,grid:{color:'#eef1f5'},ticks:{callback:v=>v+'%'}},
+      y:{grid:{display:false},ticks:{font:{size:12}}}}}
+});
+
+/* ② 延迟 */
+new Chart(document.getElementById('cLatency'),{
+  type:'bar',
+  data:{
+    labels:[['Qwen3-0.6B Q8','提速 2.11×'],['MiniCPM5-2B Q4','提速 2.78×'],['Qwen3.5-4B Q4','提速 2.50×'],['4B · BF16','21问共享 5.21×']],
+    datasets:[
+      {label:'直接读取 Logits（免解码）',data:[0.704,1.508,3.271,1.023],backgroundColor:C.openjev,borderRadius:4},
+      {label:'自回归生成 JSON',data:[1.484,4.193,8.164,5.332],backgroundColor:C.ref,borderRadius:4}
+    ]
+  },
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'bottom',labels:{boxWidth:12,font:{size:12}}},
+      valueLabels:{suffix:'s',colors:['#155a94','#6a7480']},
+      tooltip:{callbacks:{label:c=>' '+c.dataset.label+'：'+c.parsed.y+' s'}}},
+    scales:{y:{grid:{color:'#eef1f5'},ticks:{callback:v=>v+'s'},max:9},x:{grid:{display:false},ticks:{font:{size:11.5}}}}}
+});
+
+/* ③ 扰动 */
+new Chart(document.getElementById('cPerturb'),{
+  type:'bar',
+  data:{
+    labels:['选项顺序反转','判定准则同义改写','混入无关上下文'],
+    datasets:[
+      {label:'OpenJev 实测翻转率',data:[27.8,25.0,11.1],backgroundColor:C.jev,borderRadius:4},
+      {label:'复现门禁上限（去偏后）',data:[10,10,8],backgroundColor:C.plan,borderRadius:4}
+    ]
+  },
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'bottom',labels:{boxWidth:12,font:{size:12}}},
+      valueLabels:{suffix:'%',colors:['#8e2a20','#166f43']}},
+    scales:{y:{grid:{color:'#eef1f5'},ticks:{callback:v=>v+'%'},max:32},x:{grid:{display:false},ticks:{font:{size:12}}}}}
+});
+
+/* ④ 雷达 */
+new Chart(document.getElementById('cRadar'),{
+  type:'radar',
+  data:{
+    labels:['决策准确率','概率校准','延迟性能','扰动鲁棒','成本优势','自主开放','自然语言弹性','生产成熟度'],
+    datasets:[
+      {label:'Jev（宣称+第三方证据）',data:[8.5,8,9,3,8,2,7,7],borderColor:C.jev,backgroundColor:'rgba(192,57,43,.10)',pointBackgroundColor:C.jev,borderWidth:2},
+      {label:'OpenJev · Qwen3.5-4B',data:[8,2,5,2,10,10,9,3],borderColor:C.openjev,backgroundColor:'rgba(36,119,197,.10)',pointBackgroundColor:C.openjev,borderWidth:2},
+      {label:'复现 v0.4（目标值）',data:[7.5,9,10,9,8,10,4,5],borderColor:C.plan,backgroundColor:'rgba(30,143,87,.12)',pointBackgroundColor:C.plan,borderWidth:2,borderDash:[6,4]}
+    ]
+  },
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'bottom',labels:{boxWidth:12,font:{size:12}}}},
+    scales:{r:{min:0,max:10,ticks:{stepSize:2,font:{size:10},backdropColor:'transparent'},
+      pointLabels:{font:{size:12}},grid:{color:'#dfe6ee'},angleLines:{color:'#dfe6ee'}}}}
+});
+</script>
+</body>
+</html>

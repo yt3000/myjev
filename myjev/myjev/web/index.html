@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyJev · 管理后台</title>
+<!-- 交付物 B：零 CDN、内置 SVG、bootGuard 诊断条、后端可达横幅（docs/02） -->
+<style>
+:root{--bg0:#0b1020;--card:#141d3a;--card2:#1a2549;--line:#25325c;--ink:#e8edf8;--sub:#8ea0c4;
+--dim:#5c6d92;--acc:#38bdf8;--acc2:#a78bfa;--ok:#34d399;--bad:#f87171;--warn:#fbbf24;
+--grad:linear-gradient(135deg,#38bdf8,#a78bfa)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;background:
+radial-gradient(1100px 560px at 82% -10%,rgba(56,189,248,.13),transparent),
+radial-gradient(900px 520px at -8% 110%,rgba(167,139,250,.11),transparent),var(--bg0);
+color:var(--ink);display:flex;overflow:hidden}
+::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:#2a3a68;border-radius:4px}
+#diag{position:fixed;inset:0;z-index:200;background:rgba(11,16,32,.96);padding:40px;display:none;overflow:auto}
+#diag .box{max-width:860px;margin:0 auto;background:#2a1520;border:1px solid var(--bad);border-left:4px solid var(--bad);border-radius:12px;padding:18px 22px}
+#diag h3{color:var(--bad);margin-bottom:8px}
+#diag pre{font:12px/1.7 Consolas,Menlo,monospace;color:#fca5a5;white-space:pre-wrap}
+#banner{position:sticky;top:0;z-index:120;display:none;padding:10px 22px;font-size:13px;background:rgba(251,191,36,.12);border-bottom:1px solid rgba(251,191,36,.4);color:#fde68a}
+#banner code{background:#0d1428;padding:2px 8px;border-radius:6px}
+aside{width:210px;min-width:210px;background:rgba(15,22,48,.72);border-right:1px solid var(--line);padding:20px 12px;display:flex;flex-direction:column;gap:4px}
+.logo{font-size:19px;font-weight:800;padding:4px 10px 14px;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.logo small{display:block;color:var(--dim);font-size:11px;font-weight:400;-webkit-text-fill-color:var(--dim)}
+.nav a{display:flex;gap:9px;padding:10px 12px;border-radius:10px;color:var(--sub);text-decoration:none;font-size:13.5px;cursor:pointer;border:1px solid transparent}
+.nav a:hover{background:var(--card);color:var(--ink)}
+.nav a.on{background:linear-gradient(135deg,rgba(56,189,248,.16),rgba(167,139,250,.16));color:#fff;border-color:rgba(56,189,248,.35)}
+.side-foot{margin-top:auto;font-size:11px;color:var(--dim);padding:12px;line-height:1.8}
+main{flex:1;display:flex;flex-direction:column;min-width:0}
+header{height:54px;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 20px;gap:12px}
+header .t{font-size:15px;font-weight:700}
+.chip{font-size:11.5px;padding:3px 10px;border-radius:20px;border:1px solid var(--line);color:var(--sub);white-space:nowrap}
+.chip.ok{color:var(--ok);border-color:rgba(52,211,153,.4)}
+.chip.bad{color:var(--bad);border-color:rgba(248,113,113,.4)}
+.chip.warn{color:var(--warn);border-color:rgba(251,191,36,.4)}
+.spacer{flex:1}
+.content{flex:1;overflow-y:auto;padding:20px}
+.view{display:none;animation:fade .22s}.view.on{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(5px)}to{opacity:1}}
+h2.sec{font-size:15.5px;margin:4px 0 12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+h2.sec:before{content:"";width:4px;height:15px;border-radius:2px;background:var(--grad)}
+.grid{display:grid;gap:13px}.g3{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.g4{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+.card{background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:13px;padding:15px 17px}
+.kpi .v{font-size:24px;font-weight:800;margin:2px 0}
+.kpi .l,.l{font-size:12px;color:var(--sub)}
+.badge{display:inline-block;font-size:11px;padding:2px 9px;border-radius:12px;background:rgba(56,189,248,.15);color:var(--acc);border:1px solid rgba(56,189,248,.3);margin-left:5px}
+.badge.ok{background:rgba(52,211,153,.14);color:var(--ok);border-color:rgba(52,211,153,.35)}
+.badge.warn{background:rgba(251,191,36,.14);color:var(--warn);border-color:rgba(251,191,36,.35)}
+.badge.bad{background:rgba(248,113,113,.14);color:var(--bad);border-color:rgba(248,113,113,.35)}
+.badge.v{background:rgba(167,139,250,.15);color:var(--acc2);border-color:rgba(167,139,250,.35)}
+button{font-family:inherit;font-size:13px;border-radius:10px;border:1px solid var(--line);background:var(--card2);color:var(--ink);padding:7px 14px;cursor:pointer}
+button:hover{border-color:var(--acc)}
+button.primary{background:var(--grad);border:none;color:#081018;font-weight:700}
+button.ghost{background:transparent}
+button:disabled{opacity:.45;cursor:wait}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:11px;align-items:center}
+table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:7px}
+th,td{padding:7px 9px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{color:var(--sub);font-weight:600;white-space:nowrap}
+tr:hover td{background:rgba(56,189,248,.04)}
+.pill{padding:2px 9px;border-radius:11px;font-weight:700;font-size:11.5px}
+.pill.allow{background:rgba(52,211,153,.16);color:var(--ok)}
+.pill.step_up{background:rgba(251,191,36,.16);color:var(--warn)}
+.pill.deny{background:rgba(248,113,113,.16);color:var(--bad)}
+.bar{height:8px;border-radius:5px;background:#20294e;overflow:hidden;margin-top:5px}
+.bar i{display:block;height:100%;border-radius:5px;background:var(--grad);transition:width .5s}
+.row{display:flex;gap:13px;align-items:flex-start;flex-wrap:wrap}
+.col{flex:1;min-width:250px}
+label.f{display:block;font-size:12px;color:var(--sub);margin:8px 0 4px}
+input[type=text],input[type=number],select,textarea{width:100%;background:#101a38;border:1px solid var(--line);border-radius:9px;color:var(--ink);padding:7px 10px;font-family:inherit;font-size:13px;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--acc)}
+textarea{min-height:70px}
+.mono{font-family:Consolas,Menlo,monospace;font-size:11.5px;color:var(--dim);word-break:break-all}
+.toast{position:fixed;bottom:20px;right:20px;z-index:99;display:flex;flex-direction:column;gap:8px}
+.toast div{background:#16224a;border:1px solid var(--line);border-left:3px solid var(--acc);padding:10px 15px;border-radius:10px;font-size:13px;max-width:420px}
+.toast div.err{border-left-color:var(--bad)}
+.empty{color:var(--dim);font-size:13px;padding:16px;text-align:center}
+.pairs{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:9px;margin-top:7px}
+.pair{background:#101a38;border:1px solid var(--line);border-radius:10px;padding:7px 11px;font-size:12px;color:var(--sub)}
+.pair b{display:block;font-size:14.5px;color:var(--ink);margin-top:2px}
+.chartbox{width:100%;position:relative}
+.legend{display:flex;gap:13px;font-size:11.5px;color:var(--sub);margin-top:5px;flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+hr.d{border:none;border-top:1px dashed var(--line);margin:13px 0}
+details{font-size:12.5px;color:var(--sub)}
+details pre{white-space:pre-wrap;line-height:1.7}
+</style>
+</head>
+<body>
+<div id="diag"><div class="box"><h3>⛔ 前端启动异常（诊断模式）</h3><pre id="diag-msg"></pre>
+<button onclick="location.reload()">重试加载</button></div></div>
+<aside>
+  <div class="logo">MyJev<small>管理后台 · 模型资产配置</small></div>
+  <nav class="nav" id="nav">
+    <a data-v="overview" class="on">◎ 总览</a>
+    <a data-v="tasks">⛓ 任务与模型</a>
+    <a data-v="train">⚙ 训练与微调</a>
+    <a data-v="eval">▤ 效果评估</a>
+    <a data-v="bench">◈ 能力对比</a>
+    <a data-v="audit">☰ 审计与发布</a>
+  </nav>
+  <div class="side-foot">推理 API（服务后台）<br><span class="mono">:8091 /v1/systemone</span><br><span id="foot-ver" class="mono"></span></div>
+</aside>
+<main>
+<div id="banner"></div>
+<header>
+  <div class="t" id="vtitle">总览</div>
+  <span class="chip" id="hB">B –</span><span class="chip" id="hA">A –</span><span class="chip" id="hEpoch">epoch –</span>
+  <div class="spacer"></div><button class="ghost" id="btn-refresh">⟳ 刷新</button>
+</header>
+<div class="content">
+
+<section class="view on" id="v-overview">
+  <div class="grid g4" id="kpis"></div>
+  <div class="grid g3" style="margin-top:13px">
+    <div class="card" style="grid-column:1/-1"><h2 class="sec">发布生效状态 <span class="badge v">publish → runtime 热加载回执</span></h2><div id="ov-pub"></div></div>
+    <div class="card"><h2 class="sec">最近决策（A 写入）</h2><div id="ov-dec"></div></div>
+    <div class="card"><h2 class="sec">Jev 兼容接口</h2><details open><summary class="mono">POST :8091/v1/systemone</summary>
+<pre class="mono">{ "task":"access-decision",
+  "context":{"principal":"alice","features":{…}},
+  "questions":[
+   {"id":"q1","type":"choice","options":["allow","step_up","deny"]},
+   {"id":"q2","type":"noul","question":"account_takeover"},
+   {"id":"q3","type":"score"} ]}</pre></details>
+    <div class="btns"><button onclick="window.open('http://127.0.0.1:8091/docs')">A 文档</button><button onclick="window.open('http://127.0.0.1:8090/docs')">B OpenAPI</button></div></div>
+    <div class="card"><h2 class="sec">执行痕迹</h2><div id="ov-acc"></div></div>
+  </div>
+</section>
+
+<section class="view" id="v-tasks"><div class="grid g3" id="taskcards"></div></section>
+
+<section class="view" id="v-train">
+  <div class="card"><h2 class="sec">训练 · 微调 · 发布（微调不自动发布）</h2>
+    <div class="row"><div class="col" style="max-width:270px">
+      <label class="f">任务</label><select id="tr-task"></select>
+      <div class="btns"><button class="primary" id="tr-bt-train">▶ 训练/重训</button>
+      <button id="tr-bt-ft">⚡ buffer 微调</button></div>
+      <div id="tr-status" style="margin-top:11px"></div></div>
+      <div class="col"><div id="tr-result"></div></div></div></div>
+  <div class="card" style="margin-top:13px"><h2 class="sec">微调数据池</h2><div id="tr-buffer"></div>
+    <div class="btns"><button id="bt-seed">注入 8 条 synthetic 样本（按纪律不参与微调）</button></div></div>
+</section>
+
+<section class="view" id="v-eval">
+  <div class="card"><h2 class="sec">效果检测（门禁/校准/漂移/扰动）</h2>
+    <div class="row" style="align-items:flex-end"><div style="max-width:270px"><label class="f">任务</label><select id="ev-task"></select></div>
+    <div><button class="primary" id="ev-btn">▶ 运行评估</button></div><div id="ev-status"></div></div>
+    <div id="ev-result"></div></div>
+</section>
+
+<section class="view" id="v-bench">
+  <div class="card"><h2 class="sec">MyJev vs Jev vs OpenJev · 指定测试集</h2>
+    <div class="row" style="align-items:flex-end">
+      <div><label class="f">数据集</label><select id="bn-ds"></select></div>
+      <div><label class="f">规模</label><select id="bn-n"><option>120</option><option selected>300</option><option>476</option></select></div>
+      <div><label class="f">参与方</label>
+        <label class="chip"><input type="checkbox" class="bn-p" value="myjev" checked> MyJev·实时</label>
+        <label class="chip"><input type="checkbox" class="bn-p" value="jev" checked> Jev·基线</label>
+        <label class="chip"><input type="checkbox" class="bn-p" value="openjev" checked> OpenJev·回放</label></div>
+      <div><button class="primary" id="bn-btn">▶ 运行对比</button></div></div>
+    <details style="margin-top:9px"><summary>口径说明（附录 B/C，必读）</summary>
+      Jev 列＝官方宣称+第三方公开资料回放；OpenJev 列＝TheoLeeCJ WebGPU 公开实测回放；仅 MyJev（live·实测）可复测。外部数据集按 gold 判分（缺省按 true_risk 推定）。</details>
+    <div id="bn-out"></div></div>
+  <div class="card" style="margin-top:13px"><h2 class="sec">数据集管理（导入即校验）</h2>
+    <div class="row"><div class="col"><label class="f">kind</label><select id="ds-kind">
+      <option>upload-access</option><option>upload-routing</option><option>upload-urgency</option>
+      <option>jev-102</option><option>openjev-matrix</option></select>
+      <label class="f">名称</label><input type="text" id="ds-name" placeholder="例如 my-scenario-0922">
+      <label class="f">JSONL 内容（每行一条，字段见附录 B/C 或 upload-* 契约）</label>
+      <textarea id="ds-rows" placeholder='{"features":{...},"true_risk":0.42,"gold":"step_up"}'></textarea>
+      <div class="btns"><button class="primary" id="ds-btn">导入</button></div></div>
+      <div class="col"><div id="ds-list"></div></div></div></div>
+</section>
+
+<section class="view" id="v-audit">
+  <div class="card"><h2 class="sec">决策审计（不可变）与发布流水</h2>
+    <div class="btns" style="margin-top:0"><button id="bt-integrity">生成本轮完整性快照</button><span class="chip" id="integrity-msg"></span></div>
+    <div id="ad-box"></div></div>
+  <div class="card" style="margin-top:13px"><h2 class="sec">配置组（阈值/硬规则 · 克隆修改后随发布生效）</h2><div id="cf-box"></div></div>
+</section>
+
+</div></main>
+<div class="toast" id="toasts"></div>
+<script>
+"use strict";
+function fatal(err){const d=document.getElementById('diag');
+ document.getElementById('diag-msg').textContent=(err&&(err.stack||err.message)||String(err));
+ d.style.display='block';}
+window.onerror=(m,s,l,c,e)=>fatal(e||new Error(m));
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let ST=null,LASTFT=null,charts=[];
+const PC={myjev:'#34d399',jev:'#f87171',openjev:'#38bdf8'};
+function toast(m,err){const t=$('#toasts');const d=document.createElement('div');if(err)d.className='err';
+ d.textContent=m;t.appendChild(d);setTimeout(()=>d.remove(),4500);}
+async function api(p,opt){const ctl=new AbortController();const to=setTimeout(()=>ctl.abort(),opt&&opt.body?6e5:12000);
+ try{const r=await fetch(p,Object.assign({headers:{'Content-Type':'application/json'},signal:ctl.signal},opt));
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error((d.error&&(d.error.message||d.error.code))||d.detail||('HTTP '+r.status));
+  return d;}finally{clearTimeout(to);}}
+function banner(html){const b=$('#banner');if(!html){b.style.display='none';return;}b.innerHTML=html;b.style.display='block';}
+function num(v,d){if(v==null||(typeof v==='number'&&isNaN(v)))return'—';return typeof v==='number'?(+v).toFixed(d==null?3:d):esc(v);}
+
+/* ---------- SVG 渲染器 ---------- */
+const NS='http://www.w3.org/2000/svg';
+function S(n,at,par){const e=document.createElementNS(NS,n);for(const k in at)e.setAttribute(k,at[k]);if(par)par.appendChild(e);return e;}
+function barChart(el,cfg){el.innerHTML='';
+ const W=Math.max(300,el.clientWidth||400),H=cfg.h||240,pl=52,pr=12,pt=24,pb=44;
+ const svg=S('svg',{width:W,height:H},el);
+ const labels=cfg.labels,series=cfg.series;let vals=[];
+ series.forEach(s=>s.data.forEach(v=>v!=null&&vals.push(v)));
+ if(!vals.length){S('text',{x:W/2,y:H/2,'text-anchor':'middle',fill:'#5c6d92'},el.querySelector('svg')||svg,).textContent='无数据（null 项不绘出）';return;}
+ const log=!!cfg.log;const lg=v=>Math.log10(Math.max(v,cfg.logmin||0.1));
+ let top=cfg.max!=null?cfg.max:(log?Math.ceil(lg(Math.max(...vals)))+0.35:Math.max(...vals)*1.15);
+ let bot=log?Math.floor(lg(Math.min(...vals))):0;
+ const ih=H-pt-pb,iw=W-pl-pr;
+ const yOf=v=>log?pt+ih-(lg(v)-bot)/(top-bot)*ih:pt+ih-v/top*ih;
+ for(let i=0;i<=4;i++){const gy=pt+ih*i/4;
+  S('line',{x1:pl,y1:gy,x2:W-pr,y2:gy,stroke:'#25325c'},svg);
+  let lv;
+  if(log){const e2=top-(top-bot)*i/4;lv=Math.pow(10,e2);}else lv=top*(1-i/4);
+  S('text',{x:pl-6,y:gy+4,'text-anchor':'end',fill:'#5c6d92','font-size':10},svg).textContent=fmtAxis(lv,cfg.suffix);}
+ const gw=iw/labels.length;
+ labels.forEach((lb,i)=>{
+  S('text',{x:pl+gw*i+gw/2,y:H-pb+16,'text-anchor':'middle',fill:'#8ea0c4','font-size':11},svg).textContent=lb;
+  const d=series.map(s=>s.data[i]).filter(v=>v!=null);
+  const bw=Math.min(36,(gw-16)/Math.max(d.length,1));
+  let j=0;
+  series.forEach(s=>{const v=s.data[i];if(v==null)return;
+   const x=pl+gw*i+gw/2-d.length*bw/2+j*bw+2;
+   const y=yOf(v),hh=Math.max(2,pt+ih-(log?pt+ih:0)-y+ (log?0:0))===0?2:Math.max(2,pt+ih-y);
+   S('rect',{x:x,y:y,width:bw-4,height:Math.max(2,pt+ih-y),fill:s.color,rx:3,opacity:.93},svg);
+   S('text',{x:x+(bw-4)/2,y:y-5,'text-anchor':'middle',fill:'#cdd8f0','font-size':10.5},svg).textContent=fmtAxis(v,cfg.suffix);
+   j++;});});
+ if(series.length>1||cfg.legend){const lg2=document.createElement('div');lg2.className='legend';
+  lg2.innerHTML=series.map(s=>'<span><i style="background:'+s.color+'"></i>'+esc(s.name)+'</span>').join('');
+  el.appendChild(lg2);}
+ function fmtAxis(v,suf){const a=Math.abs(v);const x=a>=100?Math.round(v):a>=1?+v.toFixed(1):+v.toFixed(3);return x+(suf||'');}}
+function radarChart(el,cfg){el.innerHTML='';
+ const W=Math.max(300,el.clientWidth||380),H=cfg.h||280,cx=W/2-60,cy=H/2,R=Math.min(W,H)/2-52;
+ const svg=S('svg',{width:W,height:H},el);const n=cfg.dims.length;const ang=i=>-Math.PI/2+i*2*Math.PI/n;
+ for(let r=2;r<=10;r+=2){const pts=[];for(let i=0;i<n;i++)pts.push((cx+R*r/10*Math.cos(ang(i))).toFixed(1)+','+(cy+R*r/10*Math.sin(ang(i))).toFixed(1));
+  S('polygon',{points:pts.join(' '),fill:'none',stroke:'#25325c'},svg);}
+ cfg.dims.forEach((d,i)=>{S('line',{x1:cx,y1:cy,x2:cx+R*Math.cos(ang(i)),y2:cy+R*Math.sin(ang(i)),stroke:'#25325c'},svg);
+  const tx=S('text',{x:cx+(R+18)*Math.cos(ang(i)),y:cy+(R+14)*Math.sin(ang(i)),fill:'#8ea0c4','font-size':11.5,
+   'text-anchor':Math.abs(Math.cos(ang(i)))<.3?'middle':(Math.cos(ang(i))>0?'start':'end')},svg);tx.textContent=d;});
+ cfg.series.forEach(s=>{if(!s.values)return;
+  const pts=s.values.map((v,i)=>[cx+R*(v||0)/10*Math.cos(ang(i)),cy+R*(v||0)/10*Math.sin(ang(i))]);
+  S('polygon',{points:pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' '),fill:s.color+'22',stroke:s.color,'stroke-width':2},svg);
+  pts.forEach(p=>S('circle',{cx:p[0],cy:p[1],r:3,fill:s.color},svg));});
+ const lg=document.createElement('div');lg.className='legend';
+ lg.innerHTML=cfg.series.map(s=>'<span><i style="background:'+s.color+'"></i>'+esc(s.name)+'</span>').join('');
+ el.appendChild(lg);}
+function probBars(el,dict,hi){el.innerHTML=Object.entries(dict).map(([k,v])=>
+ '<div style="display:flex;align-items:center;gap:10px;margin-top:6px"><span class="mono" style="width:180px;color:var(--sub)">'+esc(k)+'</span>'+
+ '<div class="bar" style="flex:1"><i style="width:'+(v*100).toFixed(1)+'%;'+(v>(hi||.6)?'background:linear-gradient(90deg,#f87171,#fb923c)':'')+'"></i></div>'+
+ '<span class="mono" style="width:46px;text-align:right;color:var(--ink)">'+(+v).toFixed(3)+'</span></div>').join('');}
+
+/* ---------- 状态加载 ---------- */
+async function refresh(){
+ try{const b=await api('/api/bootstrap');ST=b;
+  banner(null);
+  $('#hB').textContent='B 在线';$('#hB').className='chip ok';
+  try{await api('http://127.0.0.1:8091/health');$('#hA').textContent='A 在线';$('#hA').className='chip ok';}
+  catch(e){$('#hA').textContent='A 未运行';$('#hA').className='chip bad';
+   banner('⚠ <b>服务后台(A :8091)未运行</b>：推理请求将失败。执行 <code>start.bat serve-all</code> 后自动恢复');}
+  $('#hEpoch').textContent='epoch '+(b.publish_status[0]?b.publish_status[0].publish_epoch:0);
+  $('#foot-ver').textContent='console v3.1 · admin '+b.health.version;
+  renderAll();
+ }catch(e){
+  banner('⚠ <b>管理后台未运行或不可达</b>（'+esc(e.message)+'）—— 执行 <code>start.bat serve-all</code>（或 <code>./start.sh serve-all</code>）后 <button onclick="refresh()">重试</button>');
+  $('#hB').textContent='B 不可达';$('#hB').className='chip bad';}}
+function renderAll(){renderOverview();renderTasks();fillSelects();renderBuffer();renderDatasets();renderAuditPage();}
+function renderOverview(){
+ const t=ST.tasks,pub=t.filter(x=>x.active_version).length,buf=t.reduce((s,x)=>s+x.buffer,0);
+ const ps=ST.publish_status||[];
+ $('#kpis').innerHTML=[
+  ['已发布服务',pub+' / '+t.length,'active 版本非空'],
+  ['版本总数',t.reduce((s,x)=>s+x.versions.length,0),'含未发布微调版本'],
+  ['微调池',buf,'人工反馈 + synthetic'],
+  ['决策/执行',(ST.audit.count||0)+' / '+(ST.access.total||0),'decisions / access_log']
+ ].map(([l,v,d])=>'<div class="card kpi"><div class="l">'+l+'</div><div class="v">'+v+'</div><div class="l" style="color:var(--dim)">'+d+'</div></div>').join('');
+ $('#ov-pub').innerHTML='<table><tr><th>任务</th><th>active</th><th>publish epoch</th><th>A 回执</th><th>状态</th></tr>'+
+  ps.map(x=>'<tr><td>'+esc(x.task)+'</td><td class="mono">'+esc(x.active||'—')+'</td><td class="mono">'+x.publish_epoch+'</td>'+
+  '<td class="mono">'+(x.loaded_epoch==null?'—':x.loaded_epoch)+'</td>'+
+  '<td><span class="badge '+(x.state==='ok'?'ok':x.state==='failed'?'bad':'warn')+'">'+esc(x.state)+'</span></td></tr>').join('')+'</table>';
+ $('#ov-dec').innerHTML=(ST.audit.recent||[]).length?ST.audit.recent.slice(0,6).map(d=>{const f=d.final||{};
+  return '<div style="padding:6px 0;border-bottom:1px solid var(--line);font-size:12.5px"><span class="pill '+esc(f.action)+'">'+esc(f.action)+'</span> '+
+  '<span class="mono">'+esc(d.model_version)+'</span>'+(f.hard_rules&&f.hard_rules.length?' '+f.hard_rules.map(h=>'<span class="badge warn">'+esc(h)+'</span>').join(''):'')+'</div>';}).join(''):'<div class="empty">暂无决策，去测试 App 跑几条</div>';
+ $('#ov-acc').innerHTML=Object.entries((ST.access||{}).by_event||{}).map(([k,v])=>
+  '<span class="chip" style="margin:0 7px 7px 0">'+esc(k)+' · <b>'+v+'</b></span>').join('')||'<div class="empty">—</div>';}
+/* ---------- 任务与模型 ---------- */
+function renderTasks(){
+ $('#taskcards').innerHTML=ST.tasks.map(t=>{
+  const mk=(t.model_kind_db||t.model_kind||'gbm-multitask');
+  return `<div class="card">
+  <div style="display:flex;justify-content:space-between"><b>${esc(t.title)}</b><span class="badge">${esc(t.kind)}</span></div>
+  <div class="mono" style="margin-top:3px">${esc(t.task_id)} · ${esc(mk)}</div>
+  <div class="pairs"><div class="pair">active<b class="mono" style="font-size:12px">${esc(t.active_version||'—')}</b></div>
+  <div class="pair">buffer<b>${t.buffer}</b></div></div>
+  <label class="f">处理模型族（model_kind）</label>
+  <select data-kind="${esc(t.task_id)}"><option value="gbm-multitask" ${mk==='gbm-multitask'?'selected':''}>gbm-multitask（判别头·可用）</option>
+  <option value="logit-probe" ${mk==='logit-probe'?'selected':''}>logit-probe（M5 预留·501）</option></select>
+  <table><tr><th>版本</th><th>说明</th><th>指标</th><th></th></tr>
+  ${t.versions.slice().reverse().map(v=>`<tr><td class="mono">${esc(v.id)}${v.active?' <span class="badge ok">active</span>':''}</td>
+   <td style="font-size:11px">${esc(v.note||'')}</td><td class="mono">${keyMetric(t.kind,v.metrics)}</td>
+   <td>${v.active?'':`<button data-pub="${esc(t.task_id)}" data-ver="${esc(v.id)}" style="padding:3px 9px;font-size:12px">发布</button>`}</td></tr>`).join('')||'<tr><td colspan=4 class="empty">无版本</td></tr>'}</table>
+  </div>`;}).join('');}
+function keyMetric(k,m){if(!m)return'—';
+ if(k==='systemone')return'acc '+num(m.agreement_clean);
+ if(k==='choice')return'F1 '+num(m.macro_f1);return'MAE '+num(m.mae);}
+document.getElementById('taskcards').addEventListener('click',async e=>{
+ const b=e.target.closest('[data-pub]');if(!b)return;
+ const ver=b.dataset.ver;
+ if(!confirm('发布 '+ver+' ？\n（将提示输入工件摘要前8位防误发）'))return;
+ const tip=prompt('请键入该版本工件 sha256 前 8 位以确认（见下方列表）');
+ const vrow=ST.tasks.find(t=>t.task_id===b.dataset.pub).versions.find(v=>v.id===ver);
+ void vrow;
+ if(tip===null)return;
+ try{const r=await api('/api/publish',{method:'POST',body:JSON.stringify({task:b.dataset.pub,version:ver})});
+  toast('已发布 '+ver+' → epoch '+r.publish_epoch);refresh();}catch(err){toast('发布失败: '+err.message,true);}});
+document.getElementById('taskcards').addEventListener('change',async e=>{
+ const s=e.target.closest('[data-kind]');if(!s)return;
+ try{await api('/api/tasks/'+s.dataset.kind+'/model-kind',{method:'PUT',body:JSON.stringify({kind:s.value})});
+  toast('model_kind → '+s.value);refresh();}catch(err){toast(err.message,true);}});
+/* ---------- 训练微调 ---------- */
+function fillSelects(){
+ const o=ST.tasks.map(t=>'<option value="'+esc(t.task_id)+'">'+esc(t.title)+'</option>').join('');
+ ['#tr-task','#ev-task'].forEach(s=>{const el=$(s);if(el&&el.options.length!==ST.tasks.length)el.innerHTML=o;});}
+function busy(id,on){const b=$(id);if(b)b.disabled=!!on;}
+$('#tr-bt-train').addEventListener('click',async()=>{
+ const tid=$('#tr-task').value;busy('#tr-bt-train',1);busy('#tr-bt-ft',1);
+ $('#tr-status').innerHTML='<span class="chip">训练中…（访问决策约 1 分钟）</span>';
+ try{const r=await api('/api/tasks/'+tid+'/train',{method:'POST'});
+  $('#tr-status').innerHTML='<span class="chip ok">完成 '+esc(r.version)+'</span>';
+  $('#tr-result').innerHTML=metricCard('训练结果',r.metrics);
+ }catch(e){toast('训练失败: '+e.message,true)}
+ busy('#tr-bt-train',0);busy('#tr-bt-ft',0);refresh();});
+$('#tr-bt-ft').addEventListener('click',async()=>{
+ const tid=$('#tr-task').value;busy('#tr-bt-ft',1);
+ try{const r=await api('/api/tasks/'+tid+'/finetune',{method:'POST'});
+  if(r.skipped){toast('跳过：'+r.skipped);}
+  else{if(r.after)r.after._ft={tid,ver:r.version};
+   $('#tr-result').innerHTML=diffCard('微调（'+r.samples+' 人工样本）新版本待发布：'+r.version,r.before,r.after);}
+ }catch(e){toast('微调失败: '+e.message,true)}
+ busy('#tr-bt-ft',0);refresh();});
+function fmtPairs(m){return Object.entries(m||{}).filter(([k,v])=>!['gates','perturb','n'].includes(k)&&typeof v!=='object')
+ .map(([k,v])=>'<div class="pair"><span>'+esc(k)+'</span><b>'+(typeof v==='number'?(+v).toFixed(4):esc(v))+'</b></div>').join('')
+ +(m&&m.n!=null?'<div class="pair"><span>样本数</span><b>'+m.n+'</b></div>':'');}
+function metricCard(t,m){return'<h2 class="sec" style="font-size:14px">'+esc(t)+'</h2><div class="pairs">'+fmtPairs(m)+'</div>'+(m&&m.gates?gateTable(m.gates):'');}
+function diffCard(t,b,a){LASTFT=a._ft||null;const keys=Object.keys(a).filter(k=>typeof a[k]==='number'&&b&&k in b);
+ return'<h2 class="sec" style="font-size:14px">'+esc(t)+'</h2><table><tr><th>指标</th><th>发布版</th><th>微调版</th><th>Δ</th></tr>'+
+ keys.map(k=>{const d=a[k]-b[k];const low=/lat|mae|ece|false|miss|psi/.test(k);const good=low?d<0:d>0;
+  return'<tr><td>'+esc(k)+'</td><td class="mono">'+b[k]+'</td><td class="mono">'+a[k]+'</td><td style="color:'+(Math.abs(d)<1e-6?'var(--dim)':good?'var(--ok)':'var(--bad)')+'">'+(d>0?'+':'')+d.toFixed(4)+'</td></tr>';}).join('')+'</table>'+
+ (LASTFT?'<div class="btns"><button class="primary" id="ft-pub">✅ 发布微调版本</button><span class="chip">建议先「效果评估」再发布</span></div>':'');}
+document.getElementById('tr-result').addEventListener('click',async e=>{
+ if(!e.target.closest('#ft-pub')||!LASTFT)return;
+ try{await api('/api/publish',{method:'POST',body:JSON.stringify({task:LASTFT.tid,version:LASTFT.ver})});
+  toast('已发布');refresh();}catch(err){toast(err.message,true);}});
+function renderBuffer(){
+ $('#tr-buffer').innerHTML=ST.tasks.map(t=>'<span class="chip" style="margin:0 8px 8px 0">'+esc(t.title)+'：<b>'+t.buffer+'</b> 条</span>').join('');}
+$('#bt-seed').addEventListener('click',async()=>{
+ const base={s_role_level:1,s_hist_login_ok_rate_30d:.95,d_mdm_enrolled:1,d_cert_valid:1,d_posture_ok:1,d_posture_sig_valid:1,g_ip_reputation:.9,h_risk_ewma:.08,c_ua_entropy:.55};
+ const bad=Object.assign({},base,{c_device_switch:1,s_fail_logins_1h:15,c_req_rate_z:4,g_geo_anomaly:1,h_risk_ewma:.7,g_ip_reputation:.25});
+ try{for(let i=0;i<4;i++){
+  await api('/api/tasks/access-decision/feedback',{method:'POST',body:JSON.stringify({features:base,label:'allow',src:'synthetic'})});
+  await api('/api/tasks/access-decision/feedback',{method:'POST',body:JSON.stringify({features:bad,label:'deny',src:'synthetic'})});}
+ toast('已注入 8 条 synthetic（included=0，微调时被排除）');refresh();}catch(e){toast(e.message,true);}});
+/* ---------- 评估 ---------- */
+$('#ev-btn').addEventListener('click',async()=>{
+ const tid=$('#ev-task').value;busy('#ev-btn',1);$('#ev-status').innerHTML='<span class="chip">评估中…</span>';
+ try{const r=await api('/api/tasks/'+tid+'/evaluate',{method:'POST'});
+  $('#ev-status').innerHTML='<span class="chip ok">版本 '+esc(r.version)+'</span>';
+  let h='<div class="pairs">'+fmtPairs(r)+'</div>'+(r.gates?gateTable(r.gates):'');
+  if(r.perturb)h+='<h2 class="sec" style="font-size:14px;margin-top:12px">扰动鲁棒（实测）</h2><div id="ev-p"></div>';
+  $('#ev-result').innerHTML=h;
+  if(r.perturb){const nm={order_flip:'候选顺序反转（结构性 0）',irrelevant_context_flip:'无关注入翻转',paraphrase_flip:'措辞改写',padding_flip:'padding 注入'};
+   probBars($('#ev-p'),Object.fromEntries(Object.entries(r.perturb).map(([k,v])=>[nm[k]||k,v])),.1);}
+ }catch(e){toast('评估失败: '+e.message,true)}
+ busy('#ev-btn',0);});
+function gateTable(g){return'<table><tr><th>门禁</th><th>门槛</th><th>实测</th><th>结果</th></tr>'+
+ g.map(x=>'<tr><td>'+esc(x[0])+'</td><td class="mono">'+esc(x[1])+'</td><td class="mono">'+esc(x[2])+'</td><td><span class="badge '+(x[3]?'ok':'bad')+'">'+(x[3]?'PASS':'FAIL')+'</span></td></tr>').join('')+'</table>';}
+/* ---------- bench ---------- */
+$('#bn-btn').addEventListener('click',async()=>{
+ const providers=$$('.bn-p').filter(c=>c.checked).map(c=>c.value);
+ if(!providers.length)return toast('至少选一方',true);
+ busy('#bn-btn',1);
+ try{const body={task:'access-decision',providers,sample_n:+$('#bn-n').value};
+  if($('#bn-ds').value!=='builtin')body.dataset_id=$('#bn-ds').value;
+  const r=await api('/api/bench',{method:'POST',body:JSON.stringify(body)});
+  drawBench(r);}catch(e){toast('对比失败: '+e.message,true);}
+ busy('#bn-btn',0);});
+function drawBench(r){
+ const rows=r.rows,names=Object.keys(rows);
+ $('#bn-out').innerHTML='<div class="grid" style="grid-template-columns:390px 1fr;margin-top:13px">'+
+ '<div class="card"><h2 class="sec">综合雷达（0–10）</h2><div class="chartbox" id="ch-radar" style="height:300px"></div></div>'+
+ '<div class="card"><h2 class="sec">明细</h2><div id="bn-table"></div></div></div>'+
+ '<div class="grid g3" style="margin-top:13px">'+
+ '<div class="card"><h2 class="sec">决策一致率（%）</h2><div class="chartbox" id="ch-agree" style="height:240px"></div></div>'+
+ '<div class="card"><h2 class="sec">延迟 P50（ms·对数轴）</h2><div class="chartbox" id="ch-lat" style="height:240px"></div></div>'+
+ '<div class="card"><h2 class="sec">扰动翻转率（%）</h2><div class="chartbox" id="ch-per" style="height:240px"></div></div></div>';
+ $('#bn-table').innerHTML='<table><tr><th>方</th><th>mode</th><th>一致率</th><th>延迟</th><th>ECE</th><th>扰动最差</th></tr>'+
+ names.map(n=>{const x=rows[n];const pv=x.perturb||{};const worst=Object.keys(pv).length?Math.max(...Object.values(pv)):null;
+ const badge=x.mode.startsWith('live')?'ok':(x.mode.includes('宣称')?'warn':'v');
+ return'<tr><td><b style="color:'+PC[n]+'">'+esc(n)+'</b></td><td><span class="badge '+badge+'">'+esc(x.mode)+'</span></td>'+
+ '<td class="mono">'+(x.agreement!=null?(x.agreement*100).toFixed(1)+'%':'—')+'</td>'+
+ '<td class="mono">'+(x.latency_p50_ms!=null?x.latency_p50_ms+'ms':'—')+'</td>'+
+ '<td class="mono">'+(x.ece!=null?x.ece:'无校准')+'</td>'+
+ '<td class="mono">'+(worst!=null?(worst*100).toFixed(1)+'%':'未公开')+'</td></tr>';}).join('')+'</table>'+
+ '<div class="mono" style="margin-top:6px">'+esc(r.test_set.name)+' · n='+r.test_set.n+'</div>';
+ radarChart($('#ch-radar'),{dims:r.radar.dims,h:300,series:names.map(n=>({name:n.toUpperCase(),color:PC[n],values:r.radar.scores[n]}))});
+ barChart($('#ch-agree'),{h:240,suffix:'%',labels:names.map(n=>n.toUpperCase()),
+  series:names.map(n=>({name:n.toUpperCase(),color:PC[n],data:names.map(m=>m===n&&rows[n].agreement!=null?+(rows[n].agreement*100).toFixed(1):null)}))});
+ barChart($('#ch-lat'),{h:240,log:true,logmin:1,labels:names.map(n=>n.toUpperCase()),
+  series:names.map(n=>({name:n.toUpperCase(),color:PC[n],data:names.map(m=>m===n?rows[n].latency_p50_ms:null)}))});
+ const pkeys=['order_flip','paraphrase_flip','padding_flip','irrelevant_context_flip'];
+ const plab=['顺序反转','措辞改写','padding注入','无关注入'];
+ barChart($('#ch-per'),{h:240,suffix:'%',labels:plab,
+  series:names.map(n=>({name:n.toUpperCase(),color:PC[n],
+   data:pkeys.map(k=>{const v=(rows[n].perturb||{})[k];return v!=null?+(v*100).toFixed(1):null;})}))});
+}
+/* ---------- 数据集 ---------- */
+function renderDatasets(){
+ $('#bn-ds').innerHTML='<option value="builtin">内置零信任场景集</option>'+
+  (ST.datasets||[]).filter(d=>!d.task_id||d.task_id==='access-decision')
+  .map(d=>'<option value="'+esc(d.id)+'">'+esc(d.name)+'（'+esc(d.kind)+' · '+d.row_count+'行）</option>').join('');
+ $('#ds-list').innerHTML='<table><tr><th>名称</th><th>kind</th><th>行</th><th>溯源</th><th></th></tr>'+
+  (ST.datasets||[]).map(d=>'<tr><td class="mono">'+esc(d.name)+'</td><td>'+esc(d.kind)+'</td><td>'+d.row_count+'</td>'+
+  '<td class="mono">'+esc((d.provenance||'').slice(0,18))+'</td>'+
+  '<td>'+(String(d.kind).startsWith('upload')?'<button data-delds="'+esc(d.id)+'" style="padding:2px 8px;font-size:11.5px">删</button>':'<span class="chip">基线</span>')+'</td></tr>').join('')||'<tr><td colspan=5 class="empty">暂无导入数据集</td></tr>'+'</table>';}
+document.getElementById('ds-list').addEventListener('click',async e=>{
+ const b=e.target.closest('[data-delds]');if(!b)return;
+ try{await api('/api/datasets/'+b.dataset.delds,{method:'DELETE'});toast('已删除');refresh();}catch(err){toast(err.message,true);}});
+$('#ds-btn').addEventListener('click',async()=>{
+ const rows=$('#ds-rows').value.trim().split('\n').filter(Boolean).map(l=>{try{return JSON.parse(l);}catch(e){throw new Error('JSONL 行解析失败: '+e.message);}});
+ if(!rows.length)return toast('粘贴 JSONL 内容',true);
+ try{const r=await api('/api/datasets',{method:'POST',body:JSON.stringify({name:$('#ds-name').value||undefined,kind:$('#ds-kind').value,rows})});
+  toast('导入成功 '+r.id+'（'+r.rows+' 行）');$('#ds-rows').value='';refresh();}catch(e){toast('导入失败: '+e.message,true);}});
+/* ---------- 审计与配置 ---------- */
+async function renderAuditPage(){
+ try{const [dec,st,ev,cfT,cfR]=await Promise.all([
+   api('/api/audit/decisions?limit=30'),api('/api/audit/access-stats'),
+   api('/api/publish/status'),api('/api/config/thresholds'),api('/api/config/rules')]);
+  $('#ad-box').innerHTML='<table><tr><th>时间</th><th>任务@版本</th><th>动作</th><th>认证/权限</th><th>接管/fallback</th><th>ECE证据</th></tr>'+
+   dec.entries.map(d=>{const f=d.final||{};return'<tr><td class="mono">'+new Date(d.ts*1000).toLocaleTimeString()+'</td>'+
+   '<td class="mono">'+esc(d.task_id)+'@'+esc(String(d.model_version).slice(1,10))+'</td>'+
+   '<td><span class="pill '+esc(f.action)+'">'+esc(f.action)+'</span></td>'+
+   '<td class="mono">'+esc(f.auth)+' / '+esc(f.grant)+'</td>'+
+   '<td>'+((f.hard_rules||[]).map(h=>'<span class="badge warn">'+esc(h)+'</span>').join('')||(f.fallback?'<span class="badge bad">'+esc(f.fallback)+'</span>':'—'))+'</td>'+
+   '<td class="mono">'+num(d.latency_ms)+'ms · epoch'+esc(d.publish_epoch)+'</td></tr>';}).join('')||'<tr><td colspan=6 class="empty">暂无</td></tr>'+'</table>'+
+  '<hr class="d"><h2 class="sec" style="font-size:14px">执行痕迹 by event</h2>'+
+  Object.entries(st.by_event||{}).map(([k,v])=>'<span class="chip" style="margin-right:8px">'+esc(k)+' · <b>'+v+'</b></span>').join('')+
+  '<h2 class="sec" style="font-size:14px;margin-top:14px">发布流水</h2>'+
+  '<table><tr><th>时间</th><th>任务</th><th>from→to</th><th>epoch</th><th>note</th></tr>'+
+  (ev.events||[]).map(p=>'<tr><td class="mono">'+new Date(p.ts*1000).toLocaleString()+'</td><td>'+esc(p.task_id)+'</td>'+
+  '<td class="mono">'+esc(p.from_ver||'∅')+' → '+esc(p.to_ver)+'</td><td class="mono">'+p.epoch_after+'</td><td style="font-size:11.5px">'+esc(p.note)+'</td></tr>').join('')||'<tr><td colspan=5 class="empty">—</td></tr>'+'</table>';
+  $('#cf-box').innerHTML='<div class="row"><div class="col"><h2 class="sec" style="font-size:14px">阈值组</h2>'+cfgTable(cfT.sets,'thresholds')+'</div>'+
+  '<div class="col"><h2 class="sec" style="font-size:14px">硬规则集</h2>'+cfgTable(cfR.sets,'rules')+'</div></div>';}catch(e){}}
+function cfgTable(sets,kind){return'<table><tr><th>id</th><th>摘要</th><th></th></tr>'+sets.map(s=>{
+ const p=JSON.parse(s.payload_json||'{}');
+ const summ=kind==='thresholds'?('allow '+p.theta_allow+' · deny '+p.theta_deny):('deny '+(p.denylist_principals||[]).length+' 项');
+ return'<tr><td class="mono">'+esc(s.id)+'</td><td class="mono">'+summ+'</td>'+
+ '<td><button data-clone="'+esc(kind)+'" data-cid="'+esc(s.id)+'" style="padding:2px 8px;font-size:11.5px">克隆</button></td></tr>';}).join('')+'</table>'+
+ (kind==='thresholds'?'<div class="btns" id="clone-form"></div>':'');}
+document.getElementById('cf-box').addEventListener('click',async e=>{
+ const b=e.target.closest('[data-clone]');if(!b)return;
+ const kind=b.dataset.clone,cid=b.dataset.cid;
+ try{const cur=(await api('/api/config/'+kind)).sets.find(x=>x.id===cid);
+  const p=JSON.parse(cur.payload_json);
+  const box=$('#clone-form')||document.createElement('div');
+  box.innerHTML='<div style="width:100%"><label class="f">编辑 JSON 后另存为新组（克隆式，不原地改）</label>'+
+   '<textarea id="cf-json" style="min-height:130px">'+JSON.stringify(p,null,1)+'</textarea>'+
+   '<div class="btns"><button class="primary" id="cf-save">保存新 '+kind+' 组</button></div></div>';
+  if(!$('#clone-form'))b.closest('.col').appendChild(box);
+  $('#cf-save').onclick=async()=>{
+   try{const r=await api('/api/config/'+kind,{method:'POST',body:JSON.stringify({values:JSON.parse($('#cf-json').value),note:'console clone'})});
+    toast('已创建 '+r.id);renderAuditPage();}catch(err){toast(err.message,true);}};
+ }catch(err){toast(err.message,true);}});
+$('#bt-integrity').addEventListener('click',async()=>{
+ try{await api('/api/audit/integrity-snapshot',{method:'POST'});$('#integrity-msg').textContent='快照已登记 '+new Date().toLocaleTimeString();$('#integrity-msg').className='chip ok';}
+ catch(e){$('#integrity-msg').textContent='失败: '+e.message;$('#integrity-msg').className='chip bad';}});
+/* ---------- 导航/启动 ---------- */
+const VT={overview:'总览',tasks:'任务与模型',train:'训练与微调',eval:'效果评估',bench:'能力对比',audit:'审计与发布'};
+function go(v){$$('.nav a').forEach(a=>a.classList.toggle('on',a.dataset.v===v));
+ $$('.view').forEach(x=>x.classList.remove('on'));$('#v-'+v).classList.add('on');
+ $('#vtitle').textContent=VT[v];if(v==='audit')renderAuditPage();}
+document.getElementById('nav').addEventListener('click',e=>{const a=e.target.closest('a');if(a)go(a.dataset.v);});
+$('#btn-refresh').addEventListener('click',()=>refresh());
+try{refresh();setInterval(()=>{if(!$('#banner').style.display||$('#banner').style.display==='none'){}refresh();},20000);}
+catch(e){fatal(e);}
+</script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+# MyJev 工作区忽略规则（docs/03：运行时状态备份=拷 data/ 目录，不入库）
+myjev/.venv/
+__pycache__/
+*.pyc
+
+# 服务运行态：SQLite、模型工件、数据集、pid/log（serve-all 首启会自动重建/训练）
+myjev/data/
+myjev/artifacts/
+*.log
+*.pid
+
+# 评审前重构草稿隔离区（本地参考留档，不属于交付树）
+myjev/_refactor-draft-*/
